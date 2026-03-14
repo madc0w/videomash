@@ -13,6 +13,12 @@ export default defineEventHandler(async (event) => {
 
 	// Validate password
 	const { password, category, youtubeUrl } = body;
+	console.log(
+		'[AUTH] adminPassword from config:',
+		JSON.stringify(config.adminPassword)
+	);
+	console.log('[AUTH] password from request:', JSON.stringify(password));
+	console.log('[AUTH] match:', password === config.adminPassword);
 	if (!config.adminPassword || password !== config.adminPassword) {
 		throw createError({ statusCode: 401, statusMessage: 'Invalid password' });
 	}
@@ -94,6 +100,7 @@ export default defineEventHandler(async (event) => {
 		);
 
 		// Step 3: Split into clips, upload to Cloudinary (skipping duplicates)
+		// index.json is written progressively after each clip
 		const newEntries = await splitAndUpload(
 			videoPath,
 			words,
@@ -104,15 +111,13 @@ export default defineEventHandler(async (event) => {
 				apiSecret: config.cloudinaryApiSecret,
 			},
 			tmpDir,
+			indexPath,
 			category,
 			youtubeUrl,
 			sendProgress
 		);
 
-		// Step 4: Merge into consolidated index and save
-		sendProgress('Saving index…');
 		const mergedIndex = [...existingIndex, ...newEntries];
-		writeIndex(indexPath, mergedIndex);
 
 		// Clean up
 		fs.rmSync(tmpDir, { recursive: true, force: true });

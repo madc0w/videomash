@@ -88,6 +88,7 @@ export async function splitAndUpload(
 	existingIndex: IndexEntry[],
 	cloudConfig: { cloudName: string; apiKey: string; apiSecret: string },
 	outputDir: string,
+	indexPath: string,
 	category?: string,
 	source?: string,
 	onProgress?: (msg: string) => void
@@ -173,6 +174,7 @@ export async function splitAndUpload(
 				};
 				newEntries.push(entry);
 				existingWords.add(lowerLabel);
+				writeIndex(indexPath, [...existingIndex, ...newEntries]);
 				clipsDone++;
 				onProgress?.(`Clip ${clipsDone}/${totalCandidates}: "${label}"`);
 			} catch {
