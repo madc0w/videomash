@@ -99,10 +99,11 @@ const result = ref<{
 const statusMessage = ref('');
 const progressLog = ref<string[]>([]);
 const logContainer = ref<HTMLElement | null>(null);
+const baseURL = useRuntimeConfig().app.baseURL;
 
 async function loadCategories() {
 	try {
-		const res = await fetch('/categories.json');
+		const res = await fetch(`${baseURL}categories.json`);
 		if (res.ok) categories.value = await res.json();
 	} catch {}
 }

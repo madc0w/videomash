@@ -115,10 +115,11 @@ const currentClipIndex = ref(0);
 const videoEl = ref<HTMLVideoElement | null>(null);
 
 let indexData: IndexEntry[] | null = null;
+const baseURL = useRuntimeConfig().app.baseURL;
 
 async function loadIndex(): Promise<IndexEntry[]> {
 	if (indexData) return indexData;
-	const res = await fetch('/index.json');
+	const res = await fetch(`${baseURL}index.json`);
 	if (!res.ok) throw new Error('Failed to load index.json');
 	indexData = (await res.json()) as IndexEntry[];
 	return indexData;
