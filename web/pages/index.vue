@@ -84,6 +84,16 @@
 			✅ Done! <button class="replay-btn" @click="replay">Replay</button>
 		</div>
 
+		<!-- Skipped words -->
+		<div
+			v-if="skippedWords.length && (state === 'playing' || state === 'done')"
+			class="skipped-words"
+		>
+			<span v-for="(word, idx) in skippedWords" :key="idx" class="skipped-chip">
+				{{ word }}
+			</span>
+		</div>
+
 		<!-- Word list preview -->
 		<div
 			v-if="clips.length && (state === 'playing' || state === 'done')"
@@ -119,6 +129,7 @@ const dropdownOpen = ref(false);
 const state = ref<State>('idle');
 const errorMessage = ref('');
 const clips = ref<IndexEntry[]>([]);
+const skippedWords = ref<string[]>([]);
 const currentClipIndex = ref(0);
 const videoA = ref<HTMLVideoElement | null>(null);
 const videoB = ref<HTMLVideoElement | null>(null);
@@ -167,6 +178,7 @@ async function mashIt() {
 	state.value = 'working';
 	errorMessage.value = '';
 	clips.value = [];
+	skippedWords.value = [];
 	currentClipIndex.value = 0;
 
 	try {
@@ -185,7 +197,8 @@ async function mashIt() {
 			return;
 		}
 
-		clips.value = result.clips ?? [];
+		skippedWords.value = result.skippedWords;
+		clips.value = result.clips;
 		state.value = 'playing';
 		activeVideo.value = 'A';
 
@@ -472,6 +485,22 @@ textarea:disabled {
 
 .replay-btn:hover {
 	background: #6b65e0;
+}
+
+.skipped-words {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	justify-content: center;
+}
+
+.skipped-chip {
+	padding: 0.25rem 0.6rem;
+	border-radius: 6px;
+	font-size: 0.85rem;
+	background: rgba(220, 38, 38, 0.25);
+	color: #f87171;
+	border: 1px solid rgba(220, 38, 38, 0.4);
 }
 
 .admin-link {

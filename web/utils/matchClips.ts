@@ -18,9 +18,7 @@ export function matchClips(
 	text: string,
 	index: IndexEntry[],
 	categories?: string[]
-):
-	| { clips: IndexEntry[]; error?: undefined }
-	| { clips?: undefined; error: string } {
+): { clips: IndexEntry[]; skippedWords: string[]; error?: string } {
 	// Filter by categories if provided
 	const filtered =
 		categories && categories.length > 0
@@ -35,7 +33,7 @@ export function matchClips(
 		.filter(Boolean);
 
 	if (words.length === 0) {
-		return { error: 'Please enter some text.' };
+		return { clips: [], skippedWords: [], error: 'Please enter some text.' };
 	}
 
 	// Build a lookup: normalised phrase -> all matching IndexEntries
@@ -58,6 +56,7 @@ export function matchClips(
 	}
 
 	const clips: IndexEntry[] = [];
+	const skippedWords: string[] = [];
 	let i = 0;
 
 	while (i < words.length) {
@@ -78,11 +77,10 @@ export function matchClips(
 		}
 
 		if (!matched) {
-			return {
-				error: `Word not found in clips: "${words[i]}"`,
-			};
+			skippedWords.push(words[i]);
+			i++;
 		}
 	}
 
-	return { clips };
+	return { clips, skippedWords };
 }
