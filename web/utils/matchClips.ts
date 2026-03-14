@@ -38,12 +38,15 @@ export function matchClips(
 		return { error: 'Please enter some text.' };
 	}
 
-	// Build a lookup: normalised phrase -> IndexEntry (keep first occurrence)
-	const lookup = new Map<string, IndexEntry>();
+	// Build a lookup: normalised phrase -> all matching IndexEntries
+	const lookup = new Map<string, IndexEntry[]>();
 	for (const entry of filtered) {
 		const key = entry.word.toLowerCase().trim();
-		if (!lookup.has(key)) {
-			lookup.set(key, entry);
+		const arr = lookup.get(key);
+		if (arr) {
+			arr.push(entry);
+		} else {
+			lookup.set(key, [entry]);
 		}
 	}
 
@@ -63,8 +66,10 @@ export function matchClips(
 		// Try longest possible sequence first
 		for (let n = Math.min(maxN, words.length - i); n >= 1; n--) {
 			const phrase = words.slice(i, i + n).join(' ');
-			const entry = lookup.get(phrase);
-			if (entry) {
+			const entries = lookup.get(phrase);
+			if (entries) {
+				// Pick a random clip from all matches
+				const entry = entries[Math.floor(Math.random() * entries.length)];
 				clips.push(entry);
 				i += n;
 				matched = true;
