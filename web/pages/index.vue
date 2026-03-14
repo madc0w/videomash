@@ -6,17 +6,29 @@
 		</p>
 
 		<div class="form-group">
-			<label for="category">Category</label>
-			<select
-				id="category"
-				v-model="selectedCategory"
-				:disabled="state === 'working'"
-			>
-				<option value="">Any category</option>
-				<option v-for="cat in categories" :key="cat" :value="cat">
-					{{ cat }}
-				</option>
-			</select>
+			<label>Categories</label>
+			<div class="multi-select" :class="{ disabled: state === 'working' }">
+				<div class="multi-select-toggle" @click="toggleDropdown">
+					<span v-if="selectedCategories.length === 0" class="placeholder"
+						>Any category</span
+					>
+					<span v-else class="selected-summary">{{
+						selectedCategories.join(', ')
+					}}</span>
+					<span class="arrow">▾</span>
+				</div>
+				<div v-if="dropdownOpen" class="multi-select-dropdown">
+					<label
+						v-for="cat in categories"
+						:key="cat"
+						class="multi-select-option"
+						@click.stop
+					>
+						<input type="checkbox" :value="cat" v-model="selectedCategories" />
+						{{ cat }}
+					</label>
+				</div>
+			</div>
 		</div>
 
 		<textarea
@@ -87,14 +99,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { matchClips, type IndexEntry } from '~/utils/matchClips';
 
 type State = 'idle' | 'working' | 'error' | 'playing' | 'done';
 
 const userText = ref('');
-const selectedCategory = ref('');
+const selectedCategories = ref<string[]>([]);
 const categories = ref<string[]>([]);
+const dropdownOpen = ref(false);
 const state = ref<State>('idle');
 const errorMessage = ref('');
 const clips = ref<IndexEntry[]>([]);
@@ -113,12 +126,31 @@ async function loadIndex(): Promise<IndexEntry[]> {
 
 async function loadCategories() {
 	try {
-		const res = await fetch('/categories.json');
-		if (res.ok) categories.value = await res.json();
+		const index = await loadIndex();
+		const cats = new Set<string>();
+		for (const entry of index) {
+			if (entry.category) cats.add(entry.category);
+		}
+		categories.value = [...cats].sort();
 	} catch {}
 }
 
 loadCategories();
+
+function toggleDropdown() {
+	if (state.value === 'working') return;
+	dropdownOpen.value = !dropdownOpen.value;
+}
+
+function closeDropdown(e: MouseEvent) {
+	const target = e.target as HTMLElement;
+	if (!target.closest('.multi-select')) {
+		dropdownOpen.value = false;
+	}
+}
+
+onMounted(() => document.addEventListener('click', closeDropdown));
+onUnmounted(() => document.removeEventListener('click', closeDropdown));
 
 async function mashIt() {
 	state.value = 'working';
@@ -133,7 +165,7 @@ async function mashIt() {
 		const result = matchClips(
 			userText.value,
 			index,
-			selectedCategory.value || undefined
+			selectedCategories.value.length > 0 ? selectedCategories.value : undefined
 		);
 
 		if (result.error) {
@@ -195,7 +227,17 @@ function replay() {
 	font-weight: 600;
 }
 
-.form-group select {
+.multi-select {
+	position: relative;
+	width: 100%;
+}
+
+.multi-select.disabled {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.multi-select-toggle {
 	width: 100%;
 	padding: 0.75rem 1rem;
 	font-size: 1rem;
@@ -203,18 +245,67 @@ function replay() {
 	border-radius: 10px;
 	background: #1a1a2e;
 	color: #e0e0e0;
-	outline: none;
-	transition: border-color 0.2s;
 	cursor: pointer;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	transition: border-color 0.2s;
 }
 
-.form-group select:focus {
+.multi-select-toggle:hover {
 	border-color: #7873f5;
 }
 
-.form-group select:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
+.multi-select-toggle .placeholder {
+	color: #888;
+}
+
+.multi-select-toggle .selected-summary {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	margin-right: 0.5rem;
+}
+
+.multi-select-toggle .arrow {
+	flex-shrink: 0;
+	color: #888;
+}
+
+.multi-select-dropdown {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	right: 0;
+	background: #1a1a2e;
+	border: 2px solid #333;
+	border-radius: 10px;
+	max-height: 220px;
+	overflow-y: auto;
+	z-index: 10;
+	padding: 0.35rem 0;
+}
+
+.multi-select-option {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.55rem 1rem;
+	cursor: pointer;
+	font-size: 0.95rem;
+	color: #e0e0e0;
+	transition: background 0.15s;
+}
+
+.multi-select-option:hover {
+	background: #2a2a4a;
+}
+
+.multi-select-option input[type='checkbox'] {
+	accent-color: #7873f5;
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
 }
 
 textarea {

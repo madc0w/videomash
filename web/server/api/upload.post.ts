@@ -13,12 +13,12 @@ export default defineEventHandler(async (event) => {
 
 	// Validate password
 	const { password, category, youtubeUrl } = body;
-	console.log(
-		'[AUTH] adminPassword from config:',
-		JSON.stringify(config.adminPassword)
-	);
-	console.log('[AUTH] password from request:', JSON.stringify(password));
-	console.log('[AUTH] match:', password === config.adminPassword);
+	// console.log(
+	// 	'[AUTH] adminPassword from config:',
+	// 	JSON.stringify(config.adminPassword)
+	// );
+	// console.log('[AUTH] password from request:', JSON.stringify(password));
+	// console.log('[AUTH] match:', password === config.adminPassword);
 	if (!config.adminPassword || password !== config.adminPassword) {
 		throw createError({ statusCode: 401, statusMessage: 'Invalid password' });
 	}

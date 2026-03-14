@@ -10,21 +10,22 @@ export interface IndexEntry {
  *
  * Given user text and the clip index, find the sequence of clips
  * that covers the text using the fewest (longest) clips.
- * If category is provided, only clips with that category are used.
+ * If categories are provided, only clips with one of those categories are used.
  *
  * Returns { clips } on success, or { error, word } if a word is not found.
  */
 export function matchClips(
 	text: string,
 	index: IndexEntry[],
-	category?: string
+	categories?: string[]
 ):
 	| { clips: IndexEntry[]; error?: undefined }
 	| { clips?: undefined; error: string } {
-	// Filter by category if provided
-	const filtered = category
-		? index.filter((e) => e.category === category)
-		: index;
+	// Filter by categories if provided
+	const filtered =
+		categories && categories.length > 0
+			? index.filter((e) => e.category && categories.includes(e.category))
+			: index;
 
 	const words = text
 		.trim()
