@@ -1,0 +1,19 @@
+{
+	"name": "videomash",
+	"version": "1.0.0",
+	"description": "Split a video into individual word clips with a JSON index",
+	"scripts": {
+		"start": "tsx src/main.ts"
+	},
+	"dependencies": {
+		"cloudinary": "^2.5.1",
+		"fluent-ffmpeg": "^2.1.3",
+		"openai": "^4.0.0"
+	},
+	"devDependencies": {
+		"@types/fluent-ffmpeg": "^2.1.27",
+		"@types/node": "^22.0.0",
+		"tsx": "^4.0.0",
+		"typescript": "^5.7.0"
+	}
+}
