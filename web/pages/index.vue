@@ -63,12 +63,20 @@
 				Clip {{ currentClipIndex + 1 }} / {{ clips.length }} —
 				<em>"{{ clips[currentClipIndex]?.word }}"</em>
 			</p>
-			<video
-				ref="videoEl"
-				autoplay
-				@ended="onClipEnded"
-				@error="onVideoError"
-			/>
+			<div class="video-wrapper">
+				<video
+					ref="videoA"
+					:class="{ active: activeVideo === 'A' }"
+					@ended="onClipEnded"
+					@error="onVideoError"
+				/>
+				<video
+					ref="videoB"
+					:class="{ active: activeVideo === 'B' }"
+					@ended="onClipEnded"
+					@error="onVideoError"
+				/>
+			</div>
 		</div>
 
 		<!-- Done -->
@@ -112,7 +120,9 @@ const state = ref<State>('idle');
 const errorMessage = ref('');
 const clips = ref<IndexEntry[]>([]);
 const currentClipIndex = ref(0);
-const videoEl = ref<HTMLVideoElement | null>(null);
+const videoA = ref<HTMLVideoElement | null>(null);
+const videoB = ref<HTMLVideoElement | null>(null);
+const activeVideo = ref<'A' | 'B'>('A');
 
 let indexData: IndexEntry[] | null = null;
 const baseURL = useRuntimeConfig().app.baseURL;
@@ -177,6 +187,7 @@ async function mashIt() {
 
 		clips.value = result.clips ?? [];
 		state.value = 'playing';
+		activeVideo.value = 'A';
 
 		await nextTick();
 		playClip(0);
@@ -186,30 +197,81 @@ async function mashIt() {
 	}
 }
 
+function getActiveEl(): HTMLVideoElement | null {
+	return activeVideo.value === 'A' ? videoA.value : videoB.value;
+}
+
+function getInactiveEl(): HTMLVideoElement | null {
+	return activeVideo.value === 'A' ? videoB.value : videoA.value;
+}
+
+function preloadNext(nextIndex: number) {
+	const el = getInactiveEl();
+	if (!el || nextIndex >= clips.value.length) return;
+	el.src = clips.value[nextIndex].url;
+	el.load();
+}
+
 function playClip(index: number) {
 	currentClipIndex.value = index;
-	const el = videoEl.value;
+	const el = getActiveEl();
 	if (!el || index >= clips.value.length) {
 		state.value = 'done';
 		return;
 	}
 	el.src = clips.value[index].url;
+	el.load();
 	el.play().catch(() => {});
+
+	// Preload the next clip in the inactive video
+	preloadNext(index + 1);
 }
 
 function onClipEnded() {
-	playClip(currentClipIndex.value + 1);
+	const nextIndex = currentClipIndex.value + 1;
+	if (nextIndex >= clips.value.length) {
+		state.value = 'done';
+		return;
+	}
+
+	// Swap to the pre-loaded inactive video
+	activeVideo.value = activeVideo.value === 'A' ? 'B' : 'A';
+	currentClipIndex.value = nextIndex;
+
+	const el = getActiveEl();
+	if (el) {
+		el.play().catch(() => {});
+	}
+
+	// Preload the next clip in the now-inactive video
+	preloadNext(nextIndex + 1);
 }
 
 function onVideoError() {
 	console.warn(
 		`Failed to load clip: ${clips.value[currentClipIndex.value]?.url}`
 	);
-	playClip(currentClipIndex.value + 1);
+	// Skip to next, reset the inactive buffer for the one after
+	const nextIndex = currentClipIndex.value + 1;
+	if (nextIndex >= clips.value.length) {
+		state.value = 'done';
+		return;
+	}
+	activeVideo.value = activeVideo.value === 'A' ? 'B' : 'A';
+	currentClipIndex.value = nextIndex;
+
+	const el = getActiveEl();
+	if (el) {
+		el.src = clips.value[nextIndex].url;
+		el.load();
+		el.play().catch(() => {});
+	}
+	preloadNext(nextIndex + 1);
 }
 
 function replay() {
 	state.value = 'playing';
+	activeVideo.value = 'A';
 	nextTick(() => playClip(0));
 }
 </script>
@@ -362,6 +424,26 @@ textarea:disabled {
 .player video {
 	width: 100%;
 	border-radius: 12px;
+	background: #000;
+	position: absolute;
+	top: 0;
+	left: 0;
+	opacity: 0;
+	pointer-events: none;
+	transition: none;
+}
+
+.player video.active {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.video-wrapper {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border-radius: 12px;
+	overflow: hidden;
 	background: #000;
 }
 
