@@ -79,6 +79,28 @@
 		</div>
 
 		<NuxtLink to="/" class="back-link">← Back to VideoMash</NuxtLink>
+
+		<!-- Duplicate URL warning modal -->
+		<div
+			v-if="showDuplicateModal"
+			class="modal-overlay"
+			@click.self="showDuplicateModal = false"
+		>
+			<div class="modal">
+				<p class="modal-title">⚠️ Duplicate URL</p>
+				<p class="modal-message">
+					This YouTube URL already exists in the index under category
+					<strong>"{{ duplicateCategory }}"</strong>. Do you want to process it
+					again?
+				</p>
+				<div class="modal-actions">
+					<button class="modal-btn cancel" @click="showDuplicateModal = false">
+						Cancel
+					</button>
+					<button class="modal-btn ok" @click="confirmSubmit">OK</button>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -100,6 +122,38 @@ const statusMessage = ref('');
 const progressLog = ref<string[]>([]);
 const logContainer = ref<HTMLElement | null>(null);
 const baseURL = useRuntimeConfig().app.baseURL;
+const showDuplicateModal = ref(false);
+const duplicateCategory = ref('');
+const indexData = ref<{ source?: string; category?: string }[]>([]);
+
+async function loadIndex() {
+	try {
+		const res = await fetch(`${baseURL}index.json`);
+		if (res.ok) indexData.value = await res.json();
+	} catch {}
+}
+
+loadIndex();
+
+function extractVideoId(url: string): string | null {
+	try {
+		const u = new URL(url);
+		if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+		return u.searchParams.get('v');
+	} catch {
+		return null;
+	}
+}
+
+function findDuplicateSource(url: string): string | null {
+	const id = extractVideoId(url);
+	if (!id) return null;
+	const match = indexData.value.find((entry) => {
+		if (!entry.source) return false;
+		return extractVideoId(entry.source) === id;
+	});
+	return match?.category || null;
+}
 
 async function loadCategories() {
 	try {
@@ -118,6 +172,24 @@ async function scrollLogToBottom() {
 }
 
 async function submit() {
+	if (!youtubeUrl.value || !password.value) return;
+
+	const dupCategory = findDuplicateSource(youtubeUrl.value);
+	if (dupCategory) {
+		duplicateCategory.value = dupCategory;
+		showDuplicateModal.value = true;
+		return;
+	}
+
+	doSubmit();
+}
+
+function confirmSubmit() {
+	showDuplicateModal.value = false;
+	doSubmit();
+}
+
+async function doSubmit() {
 	if (!youtubeUrl.value || !password.value) return;
 
 	processing.value = true;
@@ -368,5 +440,71 @@ async function submit() {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.modal {
+	background: #1a1a2e;
+	border: 2px solid #444;
+	border-radius: 14px;
+	padding: 1.5rem 2rem;
+	max-width: 420px;
+	width: 90%;
+	text-align: center;
+}
+
+.modal-title {
+	font-size: 1.2rem;
+	font-weight: 700;
+	margin-bottom: 0.75rem;
+}
+
+.modal-message {
+	font-size: 0.95rem;
+	color: #ccc;
+	line-height: 1.5;
+	margin-bottom: 1.25rem;
+}
+
+.modal-actions {
+	display: flex;
+	gap: 0.75rem;
+	justify-content: center;
+}
+
+.modal-btn {
+	padding: 0.55rem 1.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: transform 0.15s;
+}
+
+.modal-btn:hover {
+	transform: scale(1.04);
+}
+
+.modal-btn.cancel {
+	background: #333;
+	color: #ccc;
+}
+
+.modal-btn.ok {
+	background: linear-gradient(135deg, #7873f5, #ff6ec7);
+	color: #fff;
 }
 </style>
