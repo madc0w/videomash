@@ -1,0 +1,20 @@
+{
+	"name": "videomash-web",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "nuxt build",
+		"dev": "nuxt dev",
+		"generate": "nuxt generate",
+		"preview": "nuxt preview"
+	},
+	"dependencies": {
+		"cloudinary": "^2.5.1",
+		"nuxt": "^3.16.0",
+		"openai": "^4.0.0",
+		"vue": "^3.5.0"
+	},
+	"devDependencies": {
+		"typescript": "^5.7.0"
+	}
+}

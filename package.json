@@ -3,7 +3,8 @@
 	"version": "1.0.0",
 	"description": "Split a video into individual word clips with a JSON index",
 	"scripts": {
-		"start": "tsx src/main.ts"
+		"start": "tsx src/main.ts",
+		"dev": "npm run dev --prefix web"
 	},
 	"dependencies": {
 		"cloudinary": "^2.5.1",

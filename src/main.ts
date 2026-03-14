@@ -44,11 +44,14 @@ async function main() {
 	// Step 3: Split video into per-word clips & upload to Cloudinary
 	const clipsDir = path.join(outputDir, 'clips');
 	fs.mkdirSync(clipsDir, { recursive: true });
-	const index: IndexEntry[] = await splitVideo(resolvedVideo, words, clipsDir);
-
-	// Step 4: Write index.json
 	const indexPath = path.join(outputDir, 'index.json');
-	fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
+	const index: IndexEntry[] = await splitVideo(
+		resolvedVideo,
+		words,
+		clipsDir,
+		indexPath
+	);
+
 	console.log(`\n✓ Done! ${index.length} clips uploaded to Cloudinary.`);
 	console.log(`Index: ${indexPath}`);
 

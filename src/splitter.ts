@@ -71,7 +71,8 @@ async function cutAndUpload(
 export async function splitVideo(
 	videoPath: string,
 	words: WordTimestamp[],
-	outputDir: string
+	outputDir: string,
+	indexPath: string
 ): Promise<IndexEntry[]> {
 	const index: IndexEntry[] = [];
 	const baseName = sanitize(path.basename(videoPath, path.extname(videoPath)));
@@ -115,6 +116,7 @@ export async function splitVideo(
 			);
 			if (entry) {
 				index.push(entry);
+				fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
 			}
 		}
 	}
