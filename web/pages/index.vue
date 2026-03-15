@@ -126,14 +126,22 @@ const videoA = ref<HTMLVideoElement | null>(null);
 const videoB = ref<HTMLVideoElement | null>(null);
 const activeVideo = ref<'A' | 'B'>('A');
 
+const CLOUDINARY_BASE_URL =
+	'https://res.cloudinary.com/dp33j1nkt/video/upload/';
+
 let indexData: IndexEntry[] | null = null;
 const baseURL = useRuntimeConfig().app.baseURL;
 
 async function loadIndex(): Promise<IndexEntry[]> {
 	if (indexData) return indexData;
-	const res = await fetch(`${baseURL}index.json`);
-	if (!res.ok) throw new Error('Failed to load index.json');
-	indexData = (await res.json()) as IndexEntry[];
+	const res = await fetch(`${baseURL}index-min.json`);
+	if (!res.ok) throw new Error('Failed to load index-min.json');
+	const raw = (await res.json()) as IndexEntry[];
+	// Expand shortened URLs back to full Cloudinary URLs
+	indexData = raw.map((e) => ({
+		...e,
+		url: e.url.startsWith('http') ? e.url : CLOUDINARY_BASE_URL + e.url,
+	}));
 	return indexData;
 }
 

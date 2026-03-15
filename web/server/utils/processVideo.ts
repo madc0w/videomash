@@ -222,6 +222,9 @@ export function readIndex(indexPath: string): IndexEntry[] {
 	return [];
 }
 
+const CLOUDINARY_BASE_URL =
+	'https://res.cloudinary.com/dp33j1nkt/video/upload/';
+
 /**
  * Write the consolidated index.json.
  */
@@ -229,4 +232,24 @@ export function writeIndex(indexPath: string, index: IndexEntry[]): void {
 	const dir = path.dirname(indexPath);
 	fs.mkdirSync(dir, { recursive: true });
 	fs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
+	writeMinIndex(indexPath, index);
+}
+
+/**
+ * Write index-min.json alongside index.json.
+ * Contains only url (shortened), word, category.
+ */
+function writeMinIndex(indexPath: string, index: IndexEntry[]): void {
+	const minPath = indexPath.replace(/index\.json$/, 'index-min.json');
+	const minIndex = index.map((e) => {
+		const entry: { url: string; word: string; category?: string } = {
+			url: e.url.startsWith(CLOUDINARY_BASE_URL)
+				? e.url.slice(CLOUDINARY_BASE_URL.length)
+				: e.url,
+			word: e.word,
+		};
+		if (e.category) entry.category = e.category;
+		return entry;
+	});
+	fs.writeFileSync(minPath, JSON.stringify(minIndex));
 }

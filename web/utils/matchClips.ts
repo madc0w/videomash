@@ -1,7 +1,6 @@
 export interface IndexEntry {
 	url: string;
 	word: string;
-	length: number;
 	category?: string;
 }
 
