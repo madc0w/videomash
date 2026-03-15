@@ -130,7 +130,7 @@ export async function splitAndUpload(
 				.join(' ')
 				.toLowerCase();
 			if (duration < MIN_DURATION) continue;
-			const key = `${label}|${category ?? ''}|${start.toFixed(1)}|${
+			const key = `${label}|${category ?? ''}|${Math.round(start)}|${
 				source ?? ''
 			}`;
 			if (!existingKeys.has(key)) {
@@ -153,7 +153,7 @@ export async function splitAndUpload(
 			const duration = +(end - start).toFixed(4);
 
 			if (duration < MIN_DURATION) continue;
-			const entryKey = `${lowerLabel}|${category ?? ''}|${start.toFixed(1)}|${
+			const entryKey = `${lowerLabel}|${category ?? ''}|${Math.round(start)}|${
 				source ?? ''
 			}`;
 			if (existingKeys.has(entryKey)) {
