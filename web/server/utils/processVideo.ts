@@ -11,6 +11,7 @@ export interface WordTimestamp {
 export interface IndexEntry {
 	url: string;
 	word: string;
+	start: number;
 	length: number;
 	category?: string;
 	source?: string;
@@ -101,8 +102,13 @@ export async function splitAndUpload(
 		api_secret: cloudConfig.apiSecret,
 	});
 
-	const existingWords = new Set(
-		existingIndex.map((e) => e.word.toLowerCase().trim())
+	const existingKeys = new Set(
+		existingIndex.map(
+			(e) =>
+				`${e.word.toLowerCase().trim()}|${e.category ?? ''}|${e.start ?? ''}|${
+					e.source ?? ''
+				}`
+		)
 	);
 	const baseName = sanitize(path.basename(videoPath, path.extname(videoPath)));
 	const clipsDir = path.join(outputDir, 'clips');
@@ -124,7 +130,8 @@ export async function splitAndUpload(
 				.join(' ')
 				.toLowerCase();
 			if (duration < MIN_DURATION) continue;
-			if (existingWords.has(label)) continue;
+			const key = `${label}|${category ?? ''}|${start}|${source ?? ''}`;
+			if (existingKeys.has(key)) continue;
 			totalCandidates++;
 		}
 	}
@@ -143,7 +150,10 @@ export async function splitAndUpload(
 			const duration = +(end - start).toFixed(4);
 
 			if (duration < MIN_DURATION) continue;
-			if (existingWords.has(lowerLabel)) continue;
+			const entryKey = `${lowerLabel}|${category ?? ''}|${start}|${
+				source ?? ''
+			}`;
+			if (existingKeys.has(entryKey)) continue;
 
 			const seq = String(i + 1).padStart(4, '0');
 			const safeName = sanitize(label);
@@ -168,12 +178,13 @@ export async function splitAndUpload(
 				const entry: IndexEntry = {
 					url: result.secure_url,
 					word: lowerLabel,
+					start,
 					length: duration,
 					...(category ? { category } : {}),
 					...(source ? { source } : {}),
 				};
 				newEntries.push(entry);
-				existingWords.add(lowerLabel);
+				existingKeys.add(entryKey);
 				writeIndex(indexPath, [...existingIndex, ...newEntries]);
 				clipsDone++;
 				onProgress?.(`Clip ${clipsDone}/${totalCandidates}: "${label}"`);

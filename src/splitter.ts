@@ -57,7 +57,7 @@ async function cutAndUpload(
 
 		fs.unlinkSync(outPath);
 
-		return { url, word: label.toLowerCase(), length: duration };
+		return { url, word: label.toLowerCase(), start, length: duration };
 	} catch (err) {
 		console.error(`  ⚠ Failed on "${label}", skipping`);
 		return null;

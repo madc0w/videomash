@@ -9,5 +9,6 @@ export interface WordTimestamp {
 export interface IndexEntry {
 	url: string;
 	word: string;
+	start: number; // start time in seconds
 	length: number; // duration in seconds
 }
