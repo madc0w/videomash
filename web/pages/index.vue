@@ -98,7 +98,7 @@
 			</span>
 		</div>
 
-		<NuxtLink to="/admin" class="admin-link">Admin</NuxtLink>
+		<!-- <NuxtLink to="/admin" class="admin-link">Admin</NuxtLink> -->
 	</div>
 </template>
 
