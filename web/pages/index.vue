@@ -84,31 +84,17 @@
 			✅ Done! <button class="replay-btn" @click="replay">Replay</button>
 		</div>
 
-		<!-- Skipped words -->
+		<!-- Word list preview (matched + skipped in order) -->
 		<div
-			v-if="skippedWords.length && (state === 'playing' || state === 'done')"
-			class="skipped-words"
-		>
-			<span v-for="(word, idx) in skippedWords" :key="idx" class="skipped-chip">
-				{{ word }}
-			</span>
-		</div>
-
-		<!-- Word list preview -->
-		<div
-			v-if="clips.length && (state === 'playing' || state === 'done')"
+			v-if="allWords.length && (state === 'playing' || state === 'done')"
 			class="clip-list"
 		>
 			<span
-				v-for="(clip, idx) in clips"
+				v-for="(token, idx) in allWords"
 				:key="idx"
-				class="chip"
-				:class="{
-					active: state === 'playing' && idx === currentClipIndex,
-					played: idx < currentClipIndex || state === 'done',
-				}"
+				:class="token.matched ? 'chip' : 'skipped-chip'"
 			>
-				{{ clip.word }}
+				{{ token.word }}
 			</span>
 		</div>
 
@@ -118,7 +104,11 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
-import { matchClips, type IndexEntry } from '~/utils/matchClips';
+import {
+	matchClips,
+	type IndexEntry,
+	type WordToken,
+} from '~/utils/matchClips';
 
 type State = 'idle' | 'working' | 'error' | 'playing' | 'done';
 
@@ -130,6 +120,7 @@ const state = ref<State>('idle');
 const errorMessage = ref('');
 const clips = ref<IndexEntry[]>([]);
 const skippedWords = ref<string[]>([]);
+const allWords = ref<WordToken[]>([]);
 const currentClipIndex = ref(0);
 const videoA = ref<HTMLVideoElement | null>(null);
 const videoB = ref<HTMLVideoElement | null>(null);
@@ -198,6 +189,7 @@ async function mashIt() {
 		}
 
 		skippedWords.value = result.skippedWords;
+		allWords.value = result.allWords;
 		clips.value = result.clips;
 		state.value = 'playing';
 		activeVideo.value = 'A';
@@ -485,13 +477,6 @@ textarea:disabled {
 
 .replay-btn:hover {
 	background: #6b65e0;
-}
-
-.skipped-words {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.4rem;
-	justify-content: center;
 }
 
 .skipped-chip {

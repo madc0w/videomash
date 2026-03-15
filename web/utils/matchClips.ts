@@ -5,6 +5,11 @@ export interface IndexEntry {
 	category?: string;
 }
 
+export interface WordToken {
+	word: string;
+	matched: boolean;
+}
+
 /**
  * Greedy longest-match algorithm.
  *
@@ -18,7 +23,12 @@ export function matchClips(
 	text: string,
 	index: IndexEntry[],
 	categories?: string[]
-): { clips: IndexEntry[]; skippedWords: string[]; error?: string } {
+): {
+	clips: IndexEntry[];
+	skippedWords: string[];
+	allWords: WordToken[];
+	error?: string;
+} {
 	// Filter by categories if provided
 	const filtered =
 		categories && categories.length > 0
@@ -33,7 +43,12 @@ export function matchClips(
 		.filter(Boolean);
 
 	if (words.length === 0) {
-		return { clips: [], skippedWords: [], error: 'Please enter some text.' };
+		return {
+			clips: [],
+			skippedWords: [],
+			allWords: [],
+			error: 'Please enter some text.',
+		};
 	}
 
 	// Build a lookup: normalised phrase -> all matching IndexEntries
@@ -57,6 +72,7 @@ export function matchClips(
 
 	const clips: IndexEntry[] = [];
 	const skippedWords: string[] = [];
+	const allWords: WordToken[] = [];
 	let i = 0;
 
 	while (i < words.length) {
@@ -70,6 +86,7 @@ export function matchClips(
 				// Pick a random clip from all matches
 				const entry = entries[Math.floor(Math.random() * entries.length)];
 				clips.push(entry);
+				allWords.push({ word: phrase, matched: true });
 				i += n;
 				matched = true;
 				break;
@@ -78,9 +95,10 @@ export function matchClips(
 
 		if (!matched) {
 			skippedWords.push(words[i]);
+			allWords.push({ word: words[i], matched: false });
 			i++;
 		}
 	}
 
-	return { clips, skippedWords };
+	return { clips, skippedWords, allWords };
 }

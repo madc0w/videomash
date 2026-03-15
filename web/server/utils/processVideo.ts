@@ -156,7 +156,10 @@ export async function splitAndUpload(
 			const entryKey = `${lowerLabel}|${category ?? ''}|${start.toFixed(1)}|${
 				source ?? ''
 			}`;
-			if (existingKeys.has(entryKey)) continue;
+			if (existingKeys.has(entryKey)) {
+				onProgress?.(`existing clip: "${label}"`);
+				continue;
+			}
 
 			const seq = String(i + 1).padStart(4, '0');
 			const safeName = sanitize(label);
