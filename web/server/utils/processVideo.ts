@@ -106,7 +106,7 @@ export async function splitAndUpload(
 		existingIndex.map(
 			(e) =>
 				`${e.word.toLowerCase().trim()}|${e.category ?? ''}|${
-					e.start != null ? (+e.start).toFixed(1) : ''
+					e.start != null ? Math.round(+e.start) : ''
 				}|${e.source ?? ''}`
 		)
 	);
