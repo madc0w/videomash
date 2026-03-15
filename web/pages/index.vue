@@ -17,7 +17,7 @@
 					}}</span>
 					<span class="arrow">▾</span>
 				</div>
-				<div v-if="dropdownOpen" class="multi-select-dropdown">
+				<div v-if="isDropdownOpen" class="multi-select-dropdown">
 					<label
 						v-for="cat in categories"
 						:key="cat"
@@ -125,7 +125,7 @@ type State = 'idle' | 'working' | 'error' | 'playing' | 'done';
 const userText = ref('');
 const selectedCategories = ref<string[]>([]);
 const categories = ref<string[]>([]);
-const dropdownOpen = ref(false);
+const isDropdownOpen = ref(false);
 const state = ref<State>('idle');
 const errorMessage = ref('');
 const clips = ref<IndexEntry[]>([]);
@@ -161,13 +161,13 @@ loadCategories();
 
 function toggleDropdown() {
 	if (state.value === 'working') return;
-	dropdownOpen.value = !dropdownOpen.value;
+	isDropdownOpen.value = !isDropdownOpen.value;
 }
 
 function closeDropdown(e: MouseEvent) {
 	const target = e.target as HTMLElement;
 	if (!target.closest('.multi-select')) {
-		dropdownOpen.value = false;
+		isDropdownOpen.value = false;
 	}
 }
 

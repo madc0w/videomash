@@ -105,9 +105,9 @@ export async function splitAndUpload(
 	const existingKeys = new Set(
 		existingIndex.map(
 			(e) =>
-				`${e.word.toLowerCase().trim()}|${e.category ?? ''}|${e.start ?? ''}|${
-					e.source ?? ''
-				}`
+				`${e.word.toLowerCase().trim()}|${e.category ?? ''}|${
+					e.start != null ? (+e.start).toFixed(1) : ''
+				}|${e.source ?? ''}`
 		)
 	);
 	const baseName = sanitize(path.basename(videoPath, path.extname(videoPath)));
@@ -130,9 +130,12 @@ export async function splitAndUpload(
 				.join(' ')
 				.toLowerCase();
 			if (duration < MIN_DURATION) continue;
-			const key = `${label}|${category ?? ''}|${start}|${source ?? ''}`;
-			if (existingKeys.has(key)) continue;
-			totalCandidates++;
+			const key = `${label}|${category ?? ''}|${start.toFixed(1)}|${
+				source ?? ''
+			}`;
+			if (!existingKeys.has(key)) {
+				totalCandidates++;
+			}
 		}
 	}
 
@@ -150,7 +153,7 @@ export async function splitAndUpload(
 			const duration = +(end - start).toFixed(4);
 
 			if (duration < MIN_DURATION) continue;
-			const entryKey = `${lowerLabel}|${category ?? ''}|${start}|${
+			const entryKey = `${lowerLabel}|${category ?? ''}|${start.toFixed(1)}|${
 				source ?? ''
 			}`;
 			if (existingKeys.has(entryKey)) continue;

@@ -10,13 +10,13 @@
 				v-model="password"
 				type="password"
 				placeholder="Enter admin password"
-				:disabled="processing"
+				:disabled="isProcessing"
 			/>
 		</div>
 
 		<div class="form-group">
 			<label for="category">Category</label>
-			<select id="category" v-model="selectedCategory" :disabled="processing">
+			<select id="category" v-model="selectedCategory" :disabled="isProcessing">
 				<option value="">— Select a category —</option>
 				<option v-for="cat in categories" :key="cat" :value="cat">
 					{{ cat }}
@@ -31,20 +31,20 @@
 				v-model="youtubeUrl"
 				type="url"
 				placeholder="https://www.youtube.com/watch?v=..."
-				:disabled="processing"
+				:disabled="isProcessing"
 			/>
 		</div>
 
 		<button
 			class="upload-btn"
-			:disabled="processing || !password || !youtubeUrl || !selectedCategory"
+			:disabled="isProcessing || !password || !youtubeUrl || !selectedCategory"
 			@click="submit"
 		>
 			🚀 Process Video
 		</button>
 
 		<!-- Processing state -->
-		<div v-if="processing" class="status working">
+		<div v-if="isProcessing" class="status working">
 			<div class="spinner" />
 			<span>{{ statusMessage }}</span>
 		</div>
@@ -82,9 +82,9 @@
 
 		<!-- Duplicate URL warning modal -->
 		<div
-			v-if="showDuplicateModal"
+			v-if="isShowDuplicateModal"
 			class="modal-overlay"
-			@click.self="showDuplicateModal = false"
+			@click.self="isShowDuplicateModal = false"
 		>
 			<div class="modal">
 				<p class="modal-title">⚠️ Duplicate URL</p>
@@ -94,7 +94,10 @@
 					again?
 				</p>
 				<div class="modal-actions">
-					<button class="modal-btn cancel" @click="showDuplicateModal = false">
+					<button
+						class="modal-btn cancel"
+						@click="isShowDuplicateModal = false"
+					>
 						Cancel
 					</button>
 					<button class="modal-btn ok" @click="confirmSubmit">OK</button>
@@ -111,7 +114,7 @@ const password = ref('');
 const selectedCategory = ref('');
 const categories = ref<string[]>([]);
 const youtubeUrl = ref('');
-const processing = ref(false);
+const isProcessing = ref(false);
 const error = ref('');
 const result = ref<{
 	newClips: number;
@@ -122,7 +125,7 @@ const statusMessage = ref('');
 const progressLog = ref<string[]>([]);
 const logContainer = ref<HTMLElement | null>(null);
 const baseURL = useRuntimeConfig().app.baseURL;
-const showDuplicateModal = ref(false);
+const isShowDuplicateModal = ref(false);
 const duplicateCategory = ref('');
 const indexData = ref<{ source?: string; category?: string }[]>([]);
 
@@ -149,8 +152,7 @@ function findDuplicateSource(url: string): string | null {
 	const id = extractVideoId(url);
 	if (!id) return null;
 	const match = indexData.value.find((entry) => {
-		if (!entry.source) return false;
-		return extractVideoId(entry.source) === id;
+		return entry.source && extractVideoId(entry.source) === id;
 	});
 	return match?.category || null;
 }
@@ -177,22 +179,21 @@ async function submit() {
 	const dupCategory = findDuplicateSource(youtubeUrl.value);
 	if (dupCategory) {
 		duplicateCategory.value = dupCategory;
-		showDuplicateModal.value = true;
-		return;
+		isShowDuplicateModal.value = true;
+	} else {
+		doSubmit();
 	}
-
-	doSubmit();
 }
 
 function confirmSubmit() {
-	showDuplicateModal.value = false;
+	isShowDuplicateModal.value = false;
 	doSubmit();
 }
 
 async function doSubmit() {
 	if (!youtubeUrl.value || !password.value) return;
 
-	processing.value = true;
+	isProcessing.value = true;
 	error.value = '';
 	result.value = null;
 	progressLog.value = [];
@@ -289,7 +290,7 @@ async function doSubmit() {
 	} catch (err: any) {
 		error.value = err.message || 'Something went wrong';
 	} finally {
-		processing.value = false;
+		isProcessing.value = false;
 	}
 }
 </script>
