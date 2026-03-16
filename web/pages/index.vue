@@ -92,7 +92,10 @@
 			<span
 				v-for="(token, idx) in allWords"
 				:key="idx"
-				:class="token.matched ? 'chip' : 'skipped-chip'"
+				:class="[
+					token.matched ? 'chip' : 'skipped-chip',
+					idx === currentWordIndex ? 'chip-active' : '',
+				]"
 			>
 				{{ token.word }}
 			</span>
@@ -103,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
 	matchClips,
 	type IndexEntry,
@@ -128,6 +131,19 @@ const activeVideo = ref<'A' | 'B'>('A');
 
 const CLOUDINARY_BASE_URL =
 	'https://res.cloudinary.com/dp33j1nkt/video/upload/';
+
+// Map currentClipIndex → corresponding allWords index
+const currentWordIndex = computed(() => {
+	if (state.value !== 'playing') return -1;
+	let clipIdx = 0;
+	for (let i = 0; i < allWords.value.length; i++) {
+		if (allWords.value[i].matched) {
+			if (clipIdx === currentClipIndex.value) return i;
+			clipIdx++;
+		}
+	}
+	return -1;
+});
 
 let indexData: IndexEntry[] | null = null;
 const baseURL = useRuntimeConfig().app.baseURL;
@@ -494,6 +510,15 @@ textarea:disabled {
 	background: rgba(220, 38, 38, 0.25);
 	color: #f87171;
 	border: 1px solid rgba(220, 38, 38, 0.4);
+}
+
+.chip-active {
+	background: linear-gradient(135deg, #7873f5, #ff6ec7);
+	color: #fff;
+	border-color: #ff6ec7;
+	box-shadow: 0 0 10px rgba(120, 115, 245, 0.5);
+	transform: scale(1.1);
+	transition: all 0.2s ease;
 }
 
 .admin-link {
