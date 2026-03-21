@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
 
 	try {
 		execSync(
-			`py -3.13 -m yt_dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4" --merge-output-format mp4 -o "${videoPath}" "${youtubeUrl}"`,
+			`py -3.13 -m yt_dlp --js-runtimes node --remote-components ejs:github -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4" --merge-output-format mp4 -o "${videoPath}" "${youtubeUrl}"`,
 			{ timeout: 600_000, stdio: 'pipe' }
 		);
 	} catch (dlErr: any) {
