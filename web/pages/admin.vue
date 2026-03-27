@@ -1,7 +1,10 @@
 <template>
 	<div class="container">
 		<h1>🔐 Admin</h1>
-		<p class="subtitle">Submit a YouTube URL to add clips to the index</p>
+		<p class="subtitle">
+			Submit a YouTube URL to add clips to the index, or permanently delete
+			Cloudinary videos.
+		</p>
 
 		<div class="form-group">
 			<label for="password">Password</label>
@@ -17,7 +20,7 @@
 		<div class="form-group">
 			<label for="category">Category</label>
 			<select id="category" v-model="selectedCategory" :disabled="isProcessing">
-				<option value="">— Select a category —</option>
+				<option value="">— No category selected —</option>
 				<option v-for="cat in categories" :key="cat" :value="cat">
 					{{ cat }}
 				</option>
@@ -35,31 +38,45 @@
 			/>
 		</div>
 
-		<button
-			class="upload-btn"
-			:disabled="isProcessing || !password || !youtubeUrl || !selectedCategory"
-			@click="submit"
-		>
-			🚀 Process Video
-		</button>
+		<div class="button-row">
+			<button
+				class="upload-btn"
+				:disabled="
+					isProcessing || !password || !youtubeUrl || !selectedCategory
+				"
+				@click="submit"
+			>
+				🚀 Process Video
+			</button>
 
-		<!-- Processing state -->
+			<button
+				class="delete-btn"
+				:disabled="isProcessing || !password"
+				@click="requestDelete"
+			>
+				🗑️
+				{{ selectedCategory ? 'Delete Category Videos' : 'Delete All Videos' }}
+			</button>
+		</div>
+
+		<p class="danger-note">
+			Deletes every Cloudinary video for the selected category. If no category
+			is selected, it deletes everything under VideoMash.
+		</p>
+
 		<div v-if="isProcessing" class="status working">
 			<div class="spinner" />
 			<span>{{ statusMessage }}</span>
 		</div>
 
-		<!-- Progress log -->
 		<div v-if="progressLog.length" class="progress-log" ref="logContainer">
 			<div v-for="(msg, idx) in progressLog" :key="idx" class="progress-line">
 				{{ msg }}
 			</div>
 		</div>
 
-		<!-- Error -->
 		<div v-if="error" class="status error">⚠️ {{ error }}</div>
 
-		<!-- Success -->
 		<div v-if="result" class="result">
 			<div class="status done">
 				<span>
@@ -78,9 +95,21 @@
 			</div>
 		</div>
 
+		<div v-if="deleteResult" class="result">
+			<div class="status done danger-done">
+				<span>
+					✅ Deleted
+					<strong>{{ deleteResult.deletedResources }}</strong>
+					Cloudinary resources and removed
+					<strong>{{ deleteResult.deletedClips }}</strong>
+					indexed clips. Remaining index size:
+					<strong>{{ deleteResult.remainingClips }}</strong>
+				</span>
+			</div>
+		</div>
+
 		<NuxtLink to="/" class="back-link">← Back to VideoMash</NuxtLink>
 
-		<!-- Duplicate URL warning modal -->
 		<div
 			v-if="isShowDuplicateModal"
 			class="modal-overlay"
@@ -104,11 +133,34 @@
 				</div>
 			</div>
 		</div>
+
+		<div
+			v-if="isShowDeleteModal"
+			class="modal-overlay"
+			@click.self="isShowDeleteModal = false"
+		>
+			<div class="modal danger-modal">
+				<p class="modal-title">🗑️ Delete Videos</p>
+				<p class="modal-message">
+					This will permanently delete all Cloudinary videos for
+					<strong>{{ deleteScopeLabel }}</strong> and remove those entries from
+					the public index.
+				</p>
+				<div class="modal-actions">
+					<button class="modal-btn cancel" @click="isShowDeleteModal = false">
+						Cancel
+					</button>
+					<button class="modal-btn delete-confirm" @click="confirmDelete">
+						Delete Permanently
+					</button>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 const password = ref('');
 const selectedCategory = ref('');
@@ -121,13 +173,27 @@ const result = ref<{
 	totalClips: number;
 	words: string[];
 } | null>(null);
+const deleteResult = ref<{
+	scope: 'category' | 'all';
+	category: string | null;
+	deletedClips: number;
+	deletedResources: number;
+	remainingClips: number;
+} | null>(null);
 const statusMessage = ref('');
 const progressLog = ref<string[]>([]);
 const logContainer = ref<HTMLElement | null>(null);
 const baseURL = useRuntimeConfig().app.baseURL;
 const isShowDuplicateModal = ref(false);
+const isShowDeleteModal = ref(false);
 const duplicateCategory = ref('');
 const indexData = ref<{ source?: string; category?: string }[]>([]);
+
+const deleteScopeLabel = computed(() =>
+	selectedCategory.value
+		? `the category \"${selectedCategory.value}\"`
+		: 'every VideoMash category'
+);
 
 async function loadIndex() {
 	try {
@@ -196,6 +262,7 @@ async function doSubmit() {
 	isProcessing.value = true;
 	error.value = '';
 	result.value = null;
+	deleteResult.value = null;
 	progressLog.value = [];
 	statusMessage.value = 'Starting…';
 
@@ -227,7 +294,6 @@ async function doSubmit() {
 			throw new Error(res.statusText || 'Processing failed');
 		}
 
-		// Read NDJSON stream
 		const reader = res.body!.getReader();
 		const decoder = new TextDecoder();
 		let buffer = '';
@@ -268,7 +334,6 @@ async function doSubmit() {
 			}
 		}
 
-		// Process any remaining buffer
 		if (buffer.trim()) {
 			try {
 				const event = JSON.parse(buffer);
@@ -287,6 +352,65 @@ async function doSubmit() {
 		if (!result.value && !error.value) {
 			throw new Error('No result received from server');
 		}
+	} catch (err: any) {
+		error.value = err.message || 'Something went wrong';
+	} finally {
+		isProcessing.value = false;
+	}
+}
+
+function requestDelete() {
+	if (!password.value || isProcessing.value) return;
+	isShowDeleteModal.value = true;
+}
+
+async function confirmDelete() {
+	isShowDeleteModal.value = false;
+	await doDelete();
+}
+
+async function doDelete() {
+	if (!password.value) return;
+
+	isProcessing.value = true;
+	error.value = '';
+	result.value = null;
+	deleteResult.value = null;
+	progressLog.value = [];
+	statusMessage.value = selectedCategory.value
+		? `Deleting videos in ${selectedCategory.value}…`
+		: 'Deleting all VideoMash videos…';
+
+	try {
+		const res = await fetch('/api/delete-videos', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				password: password.value,
+				category: selectedCategory.value || undefined,
+			}),
+		});
+
+		const payload = await res.json().catch(() => null);
+
+		if (!res.ok) {
+			throw new Error(
+				res.status === 401
+					? 'Invalid password'
+					: payload?.message || res.statusText || 'Delete failed'
+			);
+		}
+
+		deleteResult.value = {
+			scope: payload?.scope === 'category' ? 'category' : 'all',
+			category: typeof payload?.category === 'string' ? payload.category : null,
+			deletedClips: Number(payload?.deletedClips ?? 0),
+			deletedResources: Number(payload?.deletedResources ?? 0),
+			remainingClips: Number(payload?.remainingClips ?? 0),
+		};
+		statusMessage.value = payload?.message || 'Delete complete';
+		progressLog.value = [statusMessage.value];
+		await loadIndex();
 	} catch (err: any) {
 		error.value = err.message || 'Something went wrong';
 	} finally {
@@ -368,6 +492,13 @@ async function doSubmit() {
 	cursor: not-allowed;
 }
 
+.button-row {
+	width: 100%;
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
 .upload-btn {
 	padding: 0.75rem 2rem;
 	font-size: 1.15rem;
@@ -387,6 +518,35 @@ async function doSubmit() {
 .upload-btn:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
+}
+
+.delete-btn {
+	padding: 0.75rem 2rem;
+	font-size: 1.05rem;
+	font-weight: 600;
+	border: 1px solid #7a2736;
+	border-radius: 10px;
+	background: linear-gradient(135deg, #5c1420, #aa2d44);
+	color: #fff;
+	cursor: pointer;
+	transition: transform 0.15s, opacity 0.2s;
+}
+
+.delete-btn:hover:not(:disabled) {
+	transform: scale(1.04);
+}
+
+.delete-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.danger-note {
+	width: 100%;
+	margin: -0.25rem 0 0;
+	font-size: 0.88rem;
+	line-height: 1.45;
+	color: #d79aa5;
 }
 
 .result {
@@ -507,5 +667,31 @@ async function doSubmit() {
 .modal-btn.ok {
 	background: linear-gradient(135deg, #7873f5, #ff6ec7);
 	color: #fff;
+}
+
+.danger-done {
+	background: rgba(170, 45, 68, 0.16);
+	border-color: #aa2d44;
+	color: #ffd7dd;
+}
+
+.danger-modal {
+	border-color: #7a2736;
+}
+
+.delete-confirm {
+	background: linear-gradient(135deg, #7a2736, #c93a57);
+	color: #fff;
+}
+
+@media (max-width: 640px) {
+	.button-row {
+		flex-direction: column;
+	}
+
+	.upload-btn,
+	.delete-btn {
+		width: 100%;
+	}
 }
 </style>
